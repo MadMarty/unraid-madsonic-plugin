@@ -1,0 +1,406 @@
+<?xml version='1.0' standalone='yes'?>
+<PLUGIN>
+
+<!--
+29-01-2012 - 1.0	-	initial release
+30-01-2012 - 1.1	-	upgraded to jre version 7u2
+
+This Plugin installs Java Runtime Environment
+Based on original plugin by ajax3712
+-->
+
+<FILE Name="/boot/packages/jre-7u2-i586.txz">
+<URL>http://ps3ms.sincha.co.uk/jre/packages/jre-7u2-i586.txz</URL>
+</FILE>
+
+<FILE Name="/boot/config/plugins/jre/jquery.js">
+<URL>http://dl.dropbox.com/u/2902950/unRAID/jre/jquery.js</URL>
+</FILE>
+
+<FILE Name="/boot/config/plugins/jre/icon.png">
+<URL>http://ps3ms.sincha.co.uk/jre/images/icon.png</URL>
+</FILE>
+
+<FILE Name="/boot/config/plugins/jre/icon-big.png">
+<URL>http://ps3ms.sincha.co.uk/jre/images/icon-big.png</URL>
+</FILE>
+
+<FILE Name="/boot/config/plugins/jre/installing.gif">
+<URL>http://ps3ms.sincha.co.uk/images/installing.gif</URL>
+</FILE>
+
+<!-- clean up previous install if it exists -->
+<FILE Name="/tmp/jre-cleanup" Run="/bin/bash">
+<INLINE>
+<![CDATA[
+	# create back up of config file if it exists
+	if [ -f /boot/config/plugins/jre/jre.cfg ]; then
+		mv /boot/config/plugins/jre/jre.cfg /boot/config/plugins/jre/jre.cfg.bak
+	fi
+
+	# remove old plugin page data if it exists
+	if [ -d /usr/local/emhttp/plugins/jre ]; then
+		rm -rf /usr/local/emhttp/plugins/jre
+	fi
+	
+	# remove cleanup script
+	rm /tmp/jre-cleanup
+]]>
+</INLINE>
+</FILE>
+
+<!-- install jquery plugin -->
+<FILE Name="/usr/local/emhttp/plugins/jquery/install-jquery" Run="/bin/bash">
+<INLINE>
+<![CDATA[
+	# install jquery if it isn't already installed
+	
+	if [ ! -d /usr/local/emhttp/plugins/jquery ]; then
+		## install to ram
+		tar -zxvf /boot/config/plugins/jquery.tgz -C /usr/local/emhttp/plugins/jquery
+		# install to flash drive( hopefully will become redundant )
+		tar -zxvf /boot/config/plugins/jquery.tgz -C /boot/config/plugins/jquery
+	fi
+]]>
+</INLINE>
+</FILE>
+
+<!-- uninstall script -->
+<FILE Name="/usr/local/emhttp/plugins/jre/uninstall">
+<INLINE>
+	<![CDATA[
+		# uninstall java runtime environment
+		removepkg jre-7u2-i586
+
+		echo "success"
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/jre/install">
+<INLINE>
+	<![CDATA[
+		# install java runtime environment
+		
+		upgradepkg --install-new /boot/packages/jre-7u2-i586.txz
+
+		echo "success"
+]]>
+</INLINE>
+</FILE>
+
+
+<FILE Name="/boot/config/plugins/jre/jre.cfg">
+<INLINE>
+	<![CDATA[
+		# jre configuration
+		VERSION="jre-7u2-i586"
+		EXPECTED_VERSION="1.7.0_02"
+		AUTO_INSTALL="false"
+		#DEPENDANTS="comma seperated list of plugins that depend on jre"
+	]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/jre/jre.page">
+<INLINE>
+	<![CDATA[
+		Menu="NetworkServices"
+		Icon="icon.png"
+		Version="jre-7u2-i586"
+		Author="Sincha"
+		Type="php"
+		Title="JRE"
+	]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/jre/icon.png">
+<LOCAL>/boot/config/plugins/jre/icon.png</LOCAL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/jre/jquery.js">
+<LOCAL>/boot/config/plugins/jre/jquery.js</LOCAL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/jre/process.php">
+<INLINE>
+	<![CDATA[
+		<?
+			function save_config($config, $file) {
+				$content = "# jre configuration\n"; 
+
+				foreach ($config as $key => $value) {
+					$content .= "$key=\"$value\"\n";
+				} 
+
+				if (!$handle = fopen($file, 'w')) { 
+					return false; 
+				}
+
+				if (!fwrite($handle, $content)) { 
+					return false; 
+				}
+
+				fclose($handle); 
+				return true;
+			}
+			
+			if ( file_exists( "/boot/config/plugins/jre/jre.cfg" ) ) {
+				$config = parse_ini_file( "/boot/config/plugins/jre/jre.cfg" );
+			} else {
+				$config = array(
+					"VERSION" => "jre-7u2-i586",
+					"EXPECTED_VERSION" => "1.7.0_02",
+					"AUTO_INSTALL" => "false",
+					"DEPENDANTS" => ""
+				);
+				
+				save_config($config,"/boot/config/plugins/jre/jre.cfg");
+			}
+
+			parse_str($argv[1], $_POST);
+			
+			switch ( $_POST["action"] ) {
+				case "save":
+					$config["AUTO_INSTALL"] = $_POST["option"];
+					
+					$ret = save_config($config,"/boot/config/plugins/jre/jre.cfg");
+				
+					if ( $ret == true ) $return = "success";
+					break;
+				case "install":
+					$return = exec( "sh /usr/local/emhttp/plugins/jre/install" );					
+					break;
+				case "uninstall":
+					
+					$return = exec( "sh /usr/local/emhttp/plugins/jre/uninstall" );
+					break;
+			}
+		
+			echo ( $return );
+		?>
+	]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/jre/jre.php">
+<INLINE>
+	<![CDATA[
+		<?
+			$version	= trim( shell_exec( "/usr/lib/java/bin/java -version 2>&1 | grep 'java' | awk '{print \$3}' | sed -e 's|\"||g'") );
+			
+			if ( $version == "No" ) {
+				$installed = false;
+			} else {
+				$installed	= true;
+			}
+			
+			if ( file_exists( "/boot/config/plugins/jre/jre.cfg" ) ) {
+				$config = parse_ini_file( "/boot/config/plugins/jre/jre.cfg" );
+			} else {
+				$config = array(
+					"VERSION" => "jre-7u2-i586",
+					"EXPECTED_VERSION" => "1.7.0_02",
+					"AUTO_INSTALL" => "false",
+					"DEPENDANTS" => ""
+				);
+			}
+		?>
+	
+		<script type="text/javascript" src="/plugins/jre/jquery.js"></script>
+		<script type="text/javascript">
+				
+			$(document).ready(function() {
+				$('.ContentTitle a').text('Java Runtime Environment');
+			
+				// page dimmer
+				$('.Container').prepend('<div id=\'dim\'>page dim</div>')
+				$('#dim').css({	'background-color' : '#000000',
+								'opacity' : 0.5,
+								'position' : 'absolute',
+								'z-index' : 999,
+								'-moz-user-select' : 'none',
+								'top' : 0,
+								'left' : 0,
+								'height' : $(document).height(),
+								'width'	: $(document).width(),
+				}).hide();
+				$(window).resize(function() {
+					$('#dim').css('height', $(document).height());
+					$('#dim').css('width', $(document).width());
+				});
+				
+				$('#auto').change(function() {
+					var auto = $(this).is(':checked');
+
+					$.ajax({
+					url: '/plugins/jre/process.php',
+					data: 'action=save&option=' + auto,
+					dataType: 'html',
+					success: function(data) {
+						if ( data != 'success' ) {
+							alert( data );
+						}
+					}
+					});
+				});
+			
+				$('#uninstall').click(function(){
+					var ret = confirm('Uninstall JRE?');
+					
+					if ( ret == true ) {
+							$('#dim').show();
+							$('#status').html('Uninstalling please wait...');
+							$('#progress').show();
+							
+							$.ajax({
+							url: '/plugins/jre/process.php',
+							data: 'action=uninstall',
+							dataType: 'html',
+							success: function(data) {
+								if ( data == 'success' ) {
+									$('#status').html('Java Runtime Environment successfully uninstalled.' );
+									$('#progress').hide().delay(2000);
+									location.reload()
+								} else {
+									$('#status').html('Unable to uninstall Java Runtime Environment.');
+									$('#progress').hide();
+									$('#dim').hide();
+								}
+							}
+							});
+					}
+				});
+				
+				$('#install').click(function(){
+					var ret = confirm('Install JRE?');
+					
+					if ( ret == true ) {
+							$('#dim').show();
+							$('#status').html('Installing please wait...');
+							$('#progress').show();
+							
+							$.ajax({
+							url: '/plugins/jre/process.php',
+							data: 'action=install',
+							dataType: 'html',
+							success: function(data) {
+								if ( data == 'success' ) {
+									$('#status').html( 'Java Runtime Environment successfully installed.' );
+									$('#progress').hide().delay(2000);
+									location.reload()
+								} else {
+									$('#status').html('Unable to install Java Runtime Environment.');
+									$('#progress').hide();
+									$('#dim').hide();
+								}
+							}
+							});
+					}
+				});
+			});
+		</script>
+		
+		<? if ( $installed == false ) { ?>
+			<table>
+				<tr>
+					<td>
+						<b>Status</b>
+					</td>
+				</tr><tr>
+					<td id="status">
+						Java Runtime Environment is not installed.<br/ >
+						Please click the install button below.
+					</td>
+				</tr><tr>
+					<td align="center">
+						<img src="/boot/config/plugins/jre/icon-big.png">
+					</td>
+				</tr><tr>
+					<td align="center" id="progress" hidden>
+						<img src="/boot/config/plugins/jre/installing.gif">
+					</td>
+				</tr><tr>
+					<td align="center">
+						<button type="button" id="install" onClick="void(0);">Install</button>
+						<button type="button" id="done" onClick="done();">Done</button>
+						<div style="padding-top: 5px;">
+							<label>Install when server boots: </label>
+							<?
+								if ( $config["AUTO_INSTALL"] == "true" ) {
+									echo("<input id=\"auto\" type=\"checkbox\" checked=\"yes\" style=\"height: 13px; padding: 0px; position: relative; margin: 0px; top: 2px; width: 13px;\"></input>");
+								} else {
+									echo("<input id=\"auto\" type=\"checkbox\" style=\"height: 13px; padding: 0px; position: relative; margin: 0px; top: 2px; width: 13px;\"></input>");
+								}
+							?>
+						</div>
+					</td>
+				</tr>
+			</table>
+		<? } else { ?>
+			<table>
+				<tr>
+					<td>
+						<b>Status</b>
+					</td>
+				</tr><tr>
+					<td id="status">
+					Installed version:&nbsp;<?= $version; ?> <br />
+					Expected version:&nbsp;<?= $config["EXPECTED_VERSION"]; ?><br />
+					</td>
+				</tr><tr>
+					<td align="center">
+						<img src="/boot/config/plugins/jre/icon-big.png">
+					</td>
+				</tr><tr>
+					<td align="center" id="progress" hidden>
+						<img src="/boot/config/plugins/jre/installing.gif">
+					</td>
+				</tr><tr>
+					<td align="center">
+						<button type="button" id="uninstall" onClick="void(0);">Uninstall</button>
+						<button type="button" onClick="done();">Done</button>
+						<div style="padding-top: 5px;">
+							<label>Install when server boots: </label>
+							<?
+								if ( $config["AUTO_INSTALL"] == "true" ) {
+									echo("<input id=\"auto\" type=\"checkbox\" checked=\"yes\" style=\"height: 13px; padding: 0px; position: relative; margin: 0px; top: 2px; width: 13px;\"></input>");
+								} else {
+									echo("<input id=\"auto\" type=\"checkbox\" style=\"height: 13px; padding: 0px; position: relative; margin: 0px; top: 2px; width: 13px;\"></input>");
+								}
+							?>
+						</div>
+					</td>
+				</tr>
+			</table>
+		<? } ?>
+	]]>
+</INLINE>
+</FILE>
+
+<!-- clean up previous install if it exists -->
+<FILE Name="/tmp/jre-autoinstall" Run="/bin/bash">
+<INLINE>
+<![CDATA[
+	#!/bin/sh
+
+	# load config file
+	if [ -f /boot/config/plugins/jre/jre.cfg.bak ]; then
+		mv -f /boot/config/plugins/jre/jre.cfg.bak /boot/config/plugins/jre/jre.cfg
+	fi
+	
+	source /boot/config/plugins/jre/jre.cfg
+			
+	# install if install on boot is true
+	if [ $AUTO_INSTALL = "true" ]; then
+		upgradepkg --install-new /boot/packages/jre-7u2-i586.txz
+	fi
+
+	# remove auto install script
+	rm /tmp/jre-autoinstall
+]]>
+</INLINE>
+</FILE>
+
+</PLUGIN>
