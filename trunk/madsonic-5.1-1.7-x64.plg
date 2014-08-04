@@ -17,6 +17,7 @@ All dependencies are installed as needed and everything is controlable from the 
 
 <FILE Name="/boot/packages/jre-7u67-amd64.txz" Run="upgradepkg --install-new">
 <URL>http://unraid-madsonic-plugin.googlecode.com/svn/trunk/jre-7u67-amd64.txz</URL>
+</FILE>
 
 <FILE Name="/boot/packages/ffmpeg-2.1.3-x86_64-1sl.txz" Run="upgradepkg --install-new">
 <URL>http://unraid-madsonic-plugin.googlecode.com/svn/trunk/ffmpeg-2.1.3-x86_64-1sl.txz</URL>
