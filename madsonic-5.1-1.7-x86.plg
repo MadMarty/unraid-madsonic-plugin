@@ -18,6 +18,7 @@ All dependencies are installed as needed and everything is controlable from the 
 <FILE Name="/boot/packages/jre-7u67-i586.txz" Run="upgradepkg --install-new">
 <URL>http://unraid-madsonic-plugin.googlecode.com/svn/trunk/jre-7u67-i586.txz</URL>
 </FILE>
+
 <FILE Name="/boot/packages/ffmpeg-0.8.12-i686-1sl.txz" Run="upgradepkg --install-new">
 <URL>http://unraid-madsonic-plugin.googlecode.com/svn/trunk/ffmpeg-0.8.12-i686-1sl.txz</URL>
 </FILE>
